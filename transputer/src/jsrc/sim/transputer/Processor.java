@@ -1,20 +1,20 @@
 /*
  *  Copyright 2011 Jose Sebastian Reguera Candal
  *
- *  This file is part of VPK.
+ *  This file is part of Tremor.
  *
- *  VPK is free software: you can redistribute it and/or modify
+ *  Tremor is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  VPK is distributed in the hope that it will be useful,
+ *  Tremor is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with VPK.  If not, see <http://www.gnu.org/licenses/>. 
+ *  along with Tremor.  If not, see <http://www.gnu.org/licenses/>. 
  */
 package jsrc.sim.transputer;
 
@@ -76,7 +76,7 @@ public class Processor {
 		case ADC_CODE:
 			Areg += Oreg; // TODO checked + can set ErrorFlag on overflow
 			Oreg = 0;
-			Iptr = nextInst();			
+			Iptr = nextInst();
 			break;
 		case CALL_CODE:
 			setMem(index(Wptr, (short) -1), Creg); // Index Wptr' 3
@@ -107,7 +107,7 @@ public class Processor {
 		case EQC_CODE:
 			Areg = (Areg == Oreg)? TRUE_VALUE : FALSE_VALUE;
 			Oreg = 0;
-			Iptr = nextInst();			
+			Iptr = nextInst();
 			break;
 		case STL_CODE:
 			setWorkspace(Oreg, Areg);
@@ -115,7 +115,7 @@ public class Processor {
 			Breg = Creg;
 			// Creg = undefined
 			Oreg = 0;
-			Iptr = nextInst();			
+			Iptr = nextInst();
 			break;
 		case STNL_CODE:
 			// PRE: Areg & byteselectmask == 0
@@ -142,17 +142,62 @@ public class Processor {
 			Iptr = nextInst();
 			break;
 		case LB_CODE:
+			Areg = getByteMem(Areg);
+			Iptr = nextInst();
+			break;
 		case BSUB_CODE:
+			Areg = byteIndex(Areg, Breg);
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case ENDP_CODE:
+			break;
 		case DIFF_CODE:
+			Areg = (short) (Breg - Areg);
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case ADD_CODE:
+			Areg += Breg; // TODO checked + can set ErrorFlag on overflow
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case GCALL_CODE:
+			short temp1 = Areg;
+			Areg = nextInst();
+			Iptr = temp1;
+			break;
 		case IN_CODE:
+			break;
 		case PROD_CODE:
+			Areg *= Breg; // TODO checked * can set ErrorFlag on overflow
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case GT_CODE:
+			Areg = Breg > Areg ? TRUE_VALUE : FALSE_VALUE;
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case WSUB_CODE:
+			Areg = index(Areg, Breg);
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case OUT_CODE:
+			break;
 		case SUB_CODE:
+			Areg = (short) (Breg - Areg); // TODO checked - can set ErrorFlag on overflow
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case STARP_CODE:
 		case OUTBYTE_CODE:
 		case OUTWORD_CODE:
@@ -165,12 +210,25 @@ public class Processor {
 		case STHF_CODE:
 		case NORM_CODE:
 		case LDIV_CODE:
+			break;
 		case LDPI_CODE:
+			Areg = byteIndex(nextInst(), Areg);
+			Iptr = nextInst();
+			break;
 		case STLF_CODE:
+			break;
 		case XDBLE_CODE:
+			Creg = Breg;
+			Breg = (short) (Areg < 0 ? -1 : 0);
+			Iptr = nextInst();
+			break;
 		case LDPRI_CODE:
 		case REM_CODE:
+			break;
 		case RET_CODE:
+			Iptr = getMem(index(Wptr, (short) 0));
+			Wptr = index(Wptr, (short) 4);
+			break;
 		case LEND_CODE:
 		case LDTIMER_CODE:
 		case TESTERR_CODE:
@@ -181,46 +239,117 @@ public class Processor {
 		case DISC_CODE:
 		case DIS_CODE:
 		case LMUL_CODE:
+			break;
 		case NOT_CODE:
+			Areg = (short) ~Areg;
+			Iptr = nextInst();
+			break;
 		case XOR_CODE:
+			Areg ^= Breg;
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case BCNT_CODE:
+			Areg *= BYTES_PER_WORD;
+			Iptr = nextInst();
+			break;
 		case LSHR_CODE:
 		case LSHL_CODE:
 		case LSUM_CODE:
 		case LSUB_CODE:
 		case RUNP_CODE:
 		case XWORD_CODE:
+			break;
 		case SB_CODE:
+			setByteMem(Areg, (byte) (Breg & 0xFF));
+			Areg = Creg;
+			// Breg = undefined	
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case GAJW_CODE:
+			// PRE: Areg & byteselectmask == 0
+			short temp2 = Areg;
+			Areg = Wptr;
+			Wptr = temp2;
+			Iptr = nextInst();
+			break;
 		case SAVEL_CODE:
 		case SAVEH_CODE:
 		case WCNT_CODE:
+			break;
 		case SHL_CODE:
+			// PRE: Areg <unsigned wordlength
+			Areg = (short) (Breg << Areg);
+			Breg = Creg;
+			// Creg = undefined	
+			Iptr = nextInst();
+			break;
 		case SHR_CODE:
+			// PRE: Areg <unsigned wordlength
+			Areg = (short) (Breg >> Areg);
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case MINT_CODE:
 		case ALT_CODE:
 		case ALTWT_CODE:
 		case ALTEND_CODE:
+			break;
 		case AND_CODE:
+			Areg &= Breg;
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case ENBT_CODE:
 		case ENBC_CODE:
 		case ENBS_CODE:
 		case MOVE_CODE:
 		case OR_CODE:
+			Areg |= Breg;
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case CSNGL_CODE:
 		case CCNT1_CODE:
 		case TALT_CODE:
 		case LDIFF_CODE:
 		case STHB_CODE:
 		case TALTWT_CODE:
+			break;
 		case SUM_CODE:
+			Areg += Breg;
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case MUL_CODE:
+			Areg *= Breg; // TODO checked * can set ErrorFlag on overflow
+			Breg = Creg;
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case STTIMER_CODE:
 		case STOPERR_CODE:
 		case CWORD_CODE:
+			break;
 		case CLRHALTERR_CODE:
+			HaltOnErrorFlag = false;
+			Iptr = nextInst();
+			break;
 		case SETHALTERR_CODE:
+			HaltOnErrorFlag = true;
+			Iptr = nextInst();
+			break;
 		case TESTHALTERR_CODE:
+			Creg = Breg;
+			Breg = Areg;
+			Areg = HaltOnErrorFlag ? TRUE_VALUE : FALSE_VALUE;
+			Iptr = nextInst();
 			break;
 		}
 	}	
@@ -232,6 +361,7 @@ public class Processor {
 		Breg = 0;
 		Creg = 0;
 		Oreg = 0;
+		HaltOnErrorFlag = false;
 	}
 
 	private short nextInst() {
@@ -277,6 +407,8 @@ public class Processor {
 	private short Breg;
 	private short Creg;
 	private short Oreg;
+	
+	private boolean HaltOnErrorFlag;
 	
 	private byte[] mem;
 	
