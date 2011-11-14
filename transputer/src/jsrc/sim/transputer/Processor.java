@@ -21,7 +21,7 @@ package jsrc.sim.transputer;
 public class Processor {
 	
 	public Processor() {
-		mem = new byte[INTERNAL_MEMORY_SIZE];
+		internalMemory = new short[INTERNAL_MEMORY_SIZE / BYTES_PER_WORD];
 	}
 	
 	public void step() {
@@ -385,11 +385,11 @@ public class Processor {
 	}
 	
 	private short getMem(short address) {
-		return 0; // TODO
+		return internalMemory[(address + MostNeg) / BYTES_PER_WORD];
 	}
 
 	private void setMem(short address, short value) {
-		// TODO
+		internalMemory[(address + MostNeg) / BYTES_PER_WORD] = value;
 	}
 
 	private short getWorkspace(short address) {
@@ -410,7 +410,7 @@ public class Processor {
 	
 	private boolean HaltOnErrorFlag;
 	
-	private byte[] mem;
+	private short[] internalMemory;
 	
 	private static final int J_CODE = 0x00;
 	private static final int LDLP_CODE = 0x10;
@@ -520,5 +520,7 @@ public class Processor {
 	private static final int BYTES_PER_WORD = 2;
 	private static final int INTERNAL_MEMORY_SIZE = 4096;
 	private static final short MemStart = (short) 0x8024;
+	private static final short MostNeg = (short) 0x8000;
+	private static final short MostPos = 0x7FFF;
 
 }
