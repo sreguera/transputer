@@ -201,7 +201,11 @@ public class Processor {
 		case STARP_CODE:
 		case OUTBYTE_CODE:
 		case OUTWORD_CODE:
+			break;
 		case SETERR_CODE:
+			ErrorFlag = true;
+			Iptr = nextInst();
+			break;
 		case RESETCH_CODE:
 		case CSUB0_CODE:
 		case STOPP_CODE:
@@ -223,7 +227,16 @@ public class Processor {
 			Iptr = nextInst();
 			break;
 		case LDPRI_CODE:
+			break;
 		case REM_CODE:
+			if (Areg == 0 || (Areg == -1 && Breg == MostNeg)) {
+				// Areg = undefined
+				ErrorFlag = true;
+			} else {
+				Areg = (short) (Breg % Areg);
+			}
+			// Creg = undefined
+			Iptr = nextInst();
 			break;
 		case RET_CODE:
 			Iptr = getMem(index(Wptr, (short) 0));
@@ -231,10 +244,27 @@ public class Processor {
 			break;
 		case LEND_CODE:
 		case LDTIMER_CODE:
+			break;
 		case TESTERR_CODE:
+			Creg = Breg;
+			Breg = Areg;
+			Areg = ErrorFlag ? TRUE_VALUE : FALSE_VALUE;
+			ErrorFlag = false;
+			Iptr = nextInst();
+			break;
 		case TESTPRANAL_CODE:
 		case TIN_CODE:
+			break;
 		case DIV_CODE:
+			if (Areg == 0 || (Areg == -1 && Breg == MostNeg)) {
+				// Areg = undefined
+				ErrorFlag = true;
+			} else {
+				Areg = (short) (Breg / Areg);
+			}
+			// Creg = undefined
+			Iptr = nextInst();
+			break;
 		case DIST_CODE:
 		case DISC_CODE:
 		case DIS_CODE:
@@ -277,7 +307,12 @@ public class Processor {
 			break;
 		case SAVEL_CODE:
 		case SAVEH_CODE:
+			break;
 		case WCNT_CODE:
+			Creg = Breg;
+			Breg = (short) (Areg & BYTE_SELECT_MASK);
+			Areg = (short) (Areg >> BYTE_SELECT_LENGHT);
+			Iptr = nextInst();
 			break;
 		case SHL_CODE:
 			// PRE: Areg <unsigned wordlength
@@ -294,6 +329,11 @@ public class Processor {
 			Iptr = nextInst();
 			break;
 		case MINT_CODE:
+			Creg = Breg;
+			Breg = Areg;
+			Areg = MostNeg;
+			Iptr = nextInst();
+			break;
 		case ALT_CODE:
 		case ALTWT_CODE:
 		case ALTEND_CODE:
@@ -308,6 +348,7 @@ public class Processor {
 		case ENBC_CODE:
 		case ENBS_CODE:
 		case MOVE_CODE:
+			break;
 		case OR_CODE:
 			Areg |= Breg;
 			Breg = Creg;
@@ -361,6 +402,7 @@ public class Processor {
 		Breg = 0;
 		Creg = 0;
 		Oreg = 0;
+		ErrorFlag = false;
 		HaltOnErrorFlag = false;
 	}
 
@@ -385,11 +427,11 @@ public class Processor {
 	}
 	
 	private short getMem(short address) {
-		return internalMemory[(address + MostNeg) / BYTES_PER_WORD];
+		return internalMemory[(address + MostNeg) >>> BYTE_SELECT_LENGHT];
 	}
 
 	private void setMem(short address, short value) {
-		internalMemory[(address + MostNeg) / BYTES_PER_WORD] = value;
+		internalMemory[(address + MostNeg) >>> BYTE_SELECT_LENGHT] = value;
 	}
 
 	private short getWorkspace(short address) {
@@ -408,6 +450,7 @@ public class Processor {
 	private short Creg;
 	private short Oreg;
 	
+	private boolean ErrorFlag;
 	private boolean HaltOnErrorFlag;
 	
 	private short[] internalMemory;
@@ -517,6 +560,8 @@ public class Processor {
 	private static final short INST_DATA_MASK = 0x0F;
 	private static final short INST_CODE_MASK = 0xF0;
 	
+	private static final int BYTE_SELECT_LENGHT = 1;
+	private static final short BYTE_SELECT_MASK = 1;
 	private static final int BYTES_PER_WORD = 2;
 	private static final int INTERNAL_MEMORY_SIZE = 4096;
 	private static final short MemStart = (short) 0x8024;
