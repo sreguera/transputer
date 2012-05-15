@@ -30,10 +30,10 @@ public class Processor {
 	private boolean ErrorFlag;
 	private boolean HaltOnErrorFlag;
 	
-	private byte[] internalMemory;
+	private Memory memory;
 	
 	public Processor() {
-		internalMemory = new byte[INTERNAL_MEMORY_SIZE];
+		memory = new Memory(MostNeg, INTERNAL_MEMORY_SIZE);
 	}
 	
 	public void reset() {
@@ -59,25 +59,6 @@ public class Processor {
 		return (short) (base + offset);
 	}
 	
-	private byte getByteMem(short address) {
-		return internalMemory[(address + MostNeg) & 0xFFFF];
-	}
-
-	private void setByteMem(short address, byte value) {
-		internalMemory[address + MostNeg] = value;
-	}
-	
-	private short getMem(short address) {
-		final byte lo = internalMemory[address + MostNeg];
-		final byte hi = internalMemory[address + MostNeg + 1];
-		return (short) ((lo & 0xFF) | (hi << 8));
-	}
-
-	private void setMem(short address, short value) {
-		internalMemory[address + MostNeg] = (byte) (value & 0xFF);
-		internalMemory[address + MostNeg + 1] = (byte) (value >>> 8);		
-	}
-
 	private short getWorkspace(short address) {
 		return 0; // TODO
 	}
@@ -86,6 +67,7 @@ public class Processor {
 		// TODO
 	}
 	
+	// Testing
 	short testExecute(byte[] instructions) {
 		Iptr = MemStart;
 		Wptr = 0;
@@ -95,7 +77,7 @@ public class Processor {
 		Oreg = 0;
 		ErrorFlag = false;
 		HaltOnErrorFlag = false;
-		System.arraycopy(instructions, 0, internalMemory, MemStart - MostNeg, instructions.length);
+		memory.initMem(MemStart, instructions);
 		for (int i = 0; i < instructions.length; i++) {
 			step();
 		}
@@ -103,7 +85,7 @@ public class Processor {
 	}
 
 	public void step() {
-		byte inst = getByteMem(Iptr);
+		byte inst = memory.getByteMem(Iptr);
 		Oreg |= (inst & INST_DATA_MASK);
 		switch (inst & INST_CODE_MASK) {
 		case J_CODE:
@@ -123,7 +105,7 @@ public class Processor {
 			break;
 		case LDNL_CODE:
 			// PRE: Areg & byteselectmask == 0
-			Areg = getMem(index(Areg, Oreg));
+			Areg = memory.getMem(index(Areg, Oreg));
 			Oreg = 0;
 			Iptr = nextInst();
 			break;
@@ -157,10 +139,10 @@ public class Processor {
 			Iptr = nextInst();
 			break;
 		case CALL_CODE:
-			setMem(index(Wptr, (short) -1), Creg); // Index Wptr' 3
-			setMem(index(Wptr, (short) -2), Breg); // Index Wptr' 2
-			setMem(index(Wptr, (short) -3), Areg); // Index Wptr' 1
-			setMem(index(Wptr, (short) -4), Iptr); // Index Wptr' 0
+			memory.setMem(index(Wptr, (short) -1), Creg); // Index Wptr' 3
+			memory.setMem(index(Wptr, (short) -2), Breg); // Index Wptr' 2
+			memory.setMem(index(Wptr, (short) -3), Areg); // Index Wptr' 1
+			memory.setMem(index(Wptr, (short) -4), Iptr); // Index Wptr' 0
 			Areg = nextInst();
 			Wptr = index(Wptr, (short) -4);
 			Iptr = byteIndex(nextInst(), Oreg);
@@ -197,7 +179,7 @@ public class Processor {
 			break;
 		case STNL_CODE:
 			// PRE: Areg & byteselectmask == 0
-			setMem(index(Areg, Oreg), Breg);
+			memory.setMem(index(Areg, Oreg), Breg);
 			Areg = Creg;
 			// Breg = undefined
 			// Creg = undefined
@@ -220,7 +202,7 @@ public class Processor {
 			Iptr = nextInst();
 			break;
 		case LB_CODE:
-			Areg = getByteMem(Areg);
+			Areg = memory.getByteMem(Areg);
 			Iptr = nextInst();
 			break;
 		case BSUB_CODE:
@@ -317,7 +299,7 @@ public class Processor {
 			Iptr = nextInst();
 			break;
 		case RET_CODE:
-			Iptr = getMem(index(Wptr, (short) 0));
+			Iptr = memory.getMem(index(Wptr, (short) 0));
 			Wptr = index(Wptr, (short) 4);
 			break;
 		case LEND_CODE:
@@ -370,7 +352,7 @@ public class Processor {
 		case XWORD_CODE:
 			break;
 		case SB_CODE:
-			setByteMem(Areg, (byte) (Breg & 0xFF));
+			memory.setByteMem(Areg, (byte) (Breg & 0xFF));
 			Areg = Creg;
 			// Breg = undefined	
 			// Creg = undefined
