@@ -1,5 +1,5 @@
 /*
- *  Copyright 2011 Jose Sebastian Reguera Candal
+ *  Copyright 2011-2012 Jose Sebastian Reguera Candal
  *
  *  This file is part of Tremor.
  *
@@ -20,12 +20,90 @@ package jsrc.sim.transputer;
 
 public class Processor {
 	
+	private short Iptr;
+	private short Wptr;
+	private short Areg;
+	private short Breg;
+	private short Creg;
+	private short Oreg;
+	
+	private boolean ErrorFlag;
+	private boolean HaltOnErrorFlag;
+	
+	private byte[] internalMemory;
+	
 	public Processor() {
-		internalMemory = new short[INTERNAL_MEMORY_SIZE / BYTES_PER_WORD];
+		internalMemory = new byte[INTERNAL_MEMORY_SIZE];
 	}
 	
+	public void reset() {
+		Iptr = MemStart;
+		Wptr = 0;
+		Areg = 0;
+		Breg = 0;
+		Creg = 0;
+		Oreg = 0;
+		ErrorFlag = false;
+		HaltOnErrorFlag = false;
+	}
+
+	private short nextInst() {
+		return (short) (Iptr + 1);
+	}
+	
+	private short index(short base, short offset) {
+		return (short) (base + BYTES_PER_WORD * offset);
+	}
+	
+	private short byteIndex(short base, short offset) {
+		return (short) (base + offset);
+	}
+	
+	private byte getByteMem(short address) {
+		return internalMemory[(address + MostNeg) & 0xFFFF];
+	}
+
+	private void setByteMem(short address, byte value) {
+		internalMemory[address + MostNeg] = value;
+	}
+	
+	private short getMem(short address) {
+		final byte lo = internalMemory[address + MostNeg];
+		final byte hi = internalMemory[address + MostNeg + 1];
+		return (short) ((lo & 0xFF) | (hi << 8));
+	}
+
+	private void setMem(short address, short value) {
+		internalMemory[address + MostNeg] = (byte) (value & 0xFF);
+		internalMemory[address + MostNeg + 1] = (byte) (value >>> 8);		
+	}
+
+	private short getWorkspace(short address) {
+		return 0; // TODO
+	}
+	
+	private void setWorkspace(short address, short value) {
+		// TODO
+	}
+	
+	short testExecute(byte[] instructions) {
+		Iptr = MemStart;
+		Wptr = 0;
+		Areg = 0;
+		Breg = 0;
+		Creg = 0;
+		Oreg = 0;
+		ErrorFlag = false;
+		HaltOnErrorFlag = false;
+		System.arraycopy(instructions, 0, internalMemory, MemStart - MostNeg, instructions.length);
+		for (int i = 0; i < instructions.length; i++) {
+			step();
+		}
+		return Areg;
+	}
+
 	public void step() {
-		short inst = getMem(Iptr);
+		byte inst = getByteMem(Iptr);
 		Oreg |= (inst & INST_DATA_MASK);
 		switch (inst & INST_CODE_MASK) {
 		case J_CODE:
@@ -394,67 +472,7 @@ public class Processor {
 			break;
 		}
 	}	
-	
-	public void reset() {
-		Iptr = 0;
-		Wptr = 0;
-		Areg = 0;
-		Breg = 0;
-		Creg = 0;
-		Oreg = 0;
-		ErrorFlag = false;
-		HaltOnErrorFlag = false;
-	}
-
-	private short nextInst() {
-		return (short) (Iptr + 1);
-	}
-	
-	private short index(short base, short offset) {
-		return (short) (base + BYTES_PER_WORD * offset);
-	}
-	
-	private short byteIndex(short base, short offset) {
-		return (short) (base + offset);
-	}
-	
-	private byte getByteMem(short address) {
-		return 0; // TODO
-	}
-
-	private void setByteMem(short address, byte value) {
-		// TODO
-	}
-	
-	private short getMem(short address) {
-		return internalMemory[(address + MostNeg) >>> BYTE_SELECT_LENGHT];
-	}
-
-	private void setMem(short address, short value) {
-		internalMemory[(address + MostNeg) >>> BYTE_SELECT_LENGHT] = value;
-	}
-
-	private short getWorkspace(short address) {
-		return 0; // TODO
-	}
-	
-	private void setWorkspace(short address, short value) {
-		// TODO
-	}
-
-	
-	private short Iptr;
-	private short Wptr;
-	private short Areg;
-	private short Breg;
-	private short Creg;
-	private short Oreg;
-	
-	private boolean ErrorFlag;
-	private boolean HaltOnErrorFlag;
-	
-	private short[] internalMemory;
-	
+			
 	private static final int J_CODE = 0x00;
 	private static final int LDLP_CODE = 0x10;
 	private static final int PFIX_CODE = 0x20;

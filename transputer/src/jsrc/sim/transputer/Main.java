@@ -1,5 +1,5 @@
 /*
- *  Copyright 2011 Jose Sebastian Reguera Candal
+ *  Copyright 2011-2012 Jose Sebastian Reguera Candal
  *
  *  This file is part of Tremor.
  *
